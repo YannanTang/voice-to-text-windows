@@ -21,7 +21,7 @@ Before starting, ensure you have:
 
 ### 2. Clone the Repository
 ```cmd
-cd %USERPROFILE%\Documents\GitHub
+cd %USERPROFILE%\Documents\GitHub # C:\Users\tangy69\Documents\GitHub\voice-to-text-windows
 git clone https://github.com/YayunLovesCoding/voice-to-text-windows.git
 cd voice-to-text-windows
 ```

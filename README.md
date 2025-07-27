@@ -42,7 +42,7 @@ pip install -r requirements.txt
 ```cmd
 cd %USERPROFILE%\Documents\GitHub\voice-to-text-windows
 venv\Scripts\activate
-python voice_to_text_windows.py
+python voice_to_text.py
 ```
 
 ## 🎯 How to Use
@@ -90,7 +90,7 @@ When you first run the app, Windows may request permissions:
 # Start the app
 cd %USERPROFILE%\Documents\GitHub\voice-to-text-windows
 venv\Scripts\activate
-python voice_to_text_windows.py
+python voice_to_text.py
 
 # You'll see:
 # 🚀 Voice-to-Text for Windows starting up...
@@ -149,9 +149,9 @@ python voice_to_text_windows.py
 
 ```
 voice-to-text-windows/
-├── voice_to_text_windows.py    # Main application
-├── requirements.txt            # Python dependencies
-└── README.md                  # This file
+├── voice_to_text.py           # Main application
+├── requirements.txt           # Python dependencies
+└── README.md                 # This file
 ```
 
 ## 🚀 Advanced Usage
@@ -162,15 +162,15 @@ voice-to-text-windows/
 @echo off
 cd /d "%USERPROFILE%\Documents\GitHub\voice-to-text-windows"
 call venv\Scripts\activate
-python voice_to_text_windows.py
+python voice_to_text.py
 ```
 2. Add this batch file to Windows Startup folder:
    - Press `Win+R`, type `shell:startup`, press Enter
    - Copy the batch file to this folder
 
 ### Custom Hotkeys
-- Edit line 41 in `voice_to_text_windows.py` to change the hotkey combination
-- Available keys: `Key.ctrl`, `Key.alt`, `Key.shift`, `Key.cmd`
+- Edit line 223 in `voice_to_text.py` to change the hotkey combination
+- Current hotkey: `Ctrl+Shift+3`
 
 ## 🤝 Contributing
 

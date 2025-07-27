@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Voice-to-Text System for Windows
-Simple, fast English voice-to-text with Ctrl+Alt hotkey.
+Voice-to-Text System for Windows - Simple Version
+Using keyboard library for better Windows hotkey support.
 
 Usage:
-- Press Ctrl+Alt to start recording
-- Press Ctrl+Alt again to stop and convert to text
+- Press Ctrl+Shift+3 to start recording
+- Press Ctrl+Shift+3 again to stop and convert to text
 - The text will be automatically typed at your cursor position
 """
 
@@ -18,18 +18,19 @@ import pyaudio
 import whisper
 import pyautogui
 import pyperclip
-from pynput import keyboard
-from pynput.keyboard import Key
+import keyboard
 
 
-class VoiceToTextWindows:
+
+class VoiceToTextSimple:
     def __init__(self):
         self.recording = False
         self.audio_frames = []
         self.audio_stream = None
         self.p = None
         self.model = None
-        self.pasting = False  # Flag to prevent hotkey conflicts during pasting
+        self.pasting = False
+        self.last_toggle_time = 0
         
         # Audio settings
         self.chunk = 1024
@@ -37,14 +38,10 @@ class VoiceToTextWindows:
         self.channels = 1
         self.rate = 16000
         
-        # Hotkey: Ctrl+Alt (Windows equivalent of Control+Option)
-        self.hotkey = {Key.ctrl, Key.alt}
-        self.pressed_keys = set()
-        
         print("🚀 Voice-to-Text for Windows starting up...")
         self.setup_audio()
         self.load_whisper_model()
-        print("✅ Ready! Press Ctrl+Alt 🎤 to start/stop recording")
+        print("✅ Ready! Press Ctrl+Shift+3 🎤 to start/stop recording")
     
     def setup_audio(self):
         """Initialize PyAudio"""
@@ -55,6 +52,28 @@ class VoiceToTextWindows:
         print("📥 Loading Whisper model (small for better performance)...")
         self.model = whisper.load_model("small")
         print("✅ Whisper model loaded")
+    
+    def toggle_recording(self):
+        """Toggle recording state with debounce"""
+        current_time = time.time()
+        
+        # Short debounce to prevent double-triggers from single keypress
+        if current_time - self.last_toggle_time < 0.3:
+            print("🔇 Ignoring rapid hotkey trigger")
+            return
+            
+        self.last_toggle_time = current_time
+        
+        if self.pasting:
+            print("🔇 Ignoring hotkey during text pasting")
+            return
+            
+        if not self.recording:
+            print("🎤 Starting recording...")
+            self.start_recording()
+        else:
+            print("🛑 Stopping recording...")
+            self.stop_recording()
     
     def start_recording(self):
         """Start audio recording"""
@@ -72,14 +91,13 @@ class VoiceToTextWindows:
                 rate=self.rate,
                 input=True,
                 frames_per_buffer=self.chunk,
-                input_device_index=None  # Use default microphone
+                input_device_index=None
             )
             
             threading.Thread(target=self._record_audio, daemon=True).start()
             
         except Exception as e:
             print(f"❌ Failed to start recording: {e}")
-            print("💡 Check microphone permissions and try again")
             self.recording = False
     
     def _record_audio(self):
@@ -92,7 +110,7 @@ class VoiceToTextWindows:
                 else:
                     break
             except Exception as e:
-                if self.recording:  # Only print error if we're still supposed to be recording
+                if self.recording:
                     print(f"Recording error: {e}")
                 break
     
@@ -104,7 +122,6 @@ class VoiceToTextWindows:
         print("⏹️  Recording stopped, processing...")
         self.recording = False
         
-        # Give a moment for the recording thread to finish
         time.sleep(0.1)
         
         if self.audio_stream:
@@ -117,7 +134,6 @@ class VoiceToTextWindows:
             finally:
                 self.audio_stream = None
         
-        # Check if we have any audio data
         if not self.audio_frames:
             print("❌ No audio data recorded")
             return
@@ -161,83 +177,47 @@ class VoiceToTextWindows:
             print(f"Speech-to-text error: {e}")
     
     def type_text(self, text):
-        """Insert text at current cursor position using Windows-optimized methods"""
-        # Set pasting flag to prevent hotkey conflicts
+        """Insert text at current cursor position"""
         self.pasting = True
         
         try:
-            # Method 1: Clipboard paste (most reliable for Windows)
-            # Save current clipboard
-            original_clipboard = pyperclip.paste()
             
-            # Copy our text to clipboard
-            pyperclip.copy(text)
-            time.sleep(0.1)  # Give clipboard time to update
-            
-            # Use pyautogui for reliable Ctrl+V paste on Windows
-            pyautogui.hotkey('ctrl', 'v')
-            
-            print("✅ Text pasted instantly")
-            
-            # Restore original clipboard after a short delay
-            time.sleep(0.2)
-            pyperclip.copy(original_clipboard)
+            # Try direct typing first (most reliable)
+            print(f"⌨️  Typing: {text}")
+            pyautogui.typewrite(text, interval=0.001)  # Much faster typing
+            print("✅ Text typed successfully")
             
         except Exception as e:
-            print(f"Paste failed: {e}")
+            print(f"Direct typing failed: {e}")
             
-            # Method 2: Direct typing with very small interval
+            # Fallback to clipboard method
             try:
-                pyautogui.typewrite(text, interval=0.001)  # Faster typing
-                print("✅ Text typed quickly")
+                print("🔄 Trying clipboard method...")
+                original_clipboard = pyperclip.paste()
+                pyperclip.copy(text)
+                time.sleep(0.3)
+                pyautogui.hotkey('ctrl', 'v')
+                print("✅ Text pasted via clipboard")
+                time.sleep(0.3)
+                pyperclip.copy(original_clipboard)
                 
             except Exception as e2:
-                print(f"Quick typing failed: {e2}")
-                
-                # Method 3: Last resort - reliable slow typing
-                pyautogui.typewrite(text, interval=0.01)
-                print("✅ Text typed (reliable method)")
+                print(f"Clipboard method also failed: {e2}")
+                print(f"📝 Manual copy: {text}")
         
         finally:
-            # Always reset pasting flag
             self.pasting = False
     
-    def on_key_press(self, key):
-        """Handle key press events"""
-        try:
-            # Skip hotkey detection when we're pasting to avoid conflicts
-            if self.pasting:
-                return
-                
-            self.pressed_keys.add(key)
-            if self.hotkey.issubset(self.pressed_keys):
-                if not self.recording:
-                    self.start_recording()
-                else:
-                    self.stop_recording()
-        except Exception as e:
-            print(f"Key press error: {e}")
-    
-    def on_key_release(self, key):
-        """Handle key release events"""
-        try:
-            self.pressed_keys.discard(key)
-        except Exception:
-            pass
-    
     def run(self):
-        """Start the global hotkey listener"""
+        """Start the hotkey listener"""
         try:
-            listener = keyboard.Listener(
-                on_press=self.on_key_press, 
-                on_release=self.on_key_release
-            )
-            listener.start()
-            print("🎯 Listening for Ctrl+Alt 🎤 ... (Ctrl+C to quit)")
+            # Register hotkey combination
+            keyboard.add_hotkey('ctrl+shift+3', self.toggle_recording)
+            print("🎯 Listening for Ctrl+Shift+3 🎤 ... (Ctrl+C to quit)")
             
-            while True:
-                time.sleep(0.1)
-                
+            # Keep the program running
+            keyboard.wait()
+            
         except KeyboardInterrupt:
             print("\n👋 Shutting down...")
         finally:
@@ -252,7 +232,7 @@ class VoiceToTextWindows:
 
 if __name__ == "__main__":
     try:
-        app = VoiceToTextWindows()
+        app = VoiceToTextSimple()
         app.run()
     except Exception as e:
         print(f"Error starting application: {e}")

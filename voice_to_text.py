@@ -152,8 +152,14 @@ class VoiceToTextSimple:
             except Exception as e:
                 print(f"Error processing audio: {e}")
             finally:
-                if os.path.exists(temp_file.name):
-                    os.unlink(temp_file.name)
+                # Give time for file to be released, then clean up
+                try:
+                    time.sleep(0.2)
+                    if os.path.exists(temp_file.name):
+                        os.unlink(temp_file.name)
+                except PermissionError:
+                    # File still in use, will be cleaned up by OS later
+                    pass
     
     def process_speech_to_text(self, audio_file):
         """Convert audio to text using Whisper"""
@@ -211,8 +217,9 @@ class VoiceToTextSimple:
     def run(self):
         """Start the hotkey listener"""
         try:
-            # Register hotkey combination
+            # Register hotkey combinations for both left and right side keys
             keyboard.add_hotkey('ctrl+shift+3', self.toggle_recording)
+            keyboard.add_hotkey('ctrl+alt+shift+3', self.toggle_recording)
             print("🎯 Listening for Ctrl+Shift+3 🎤 ... (Ctrl+C to quit)")
             
             # Keep the program running

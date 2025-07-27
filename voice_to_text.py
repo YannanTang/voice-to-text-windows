@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Voice-to-Text System for Windows - Simple Version
-Using keyboard library for better Windows hotkey support.
+Voice-to-Text System for Windows
+Fast, local voice-to-text using OpenAI Whisper with global hotkey support.
 
 Usage:
 - Press Ctrl+Shift+3 to start recording
@@ -21,8 +21,7 @@ import pyperclip
 import keyboard
 
 
-
-class VoiceToTextSimple:
+class VoiceToText:
     def __init__(self):
         self.recording = False
         self.audio_frames = []
@@ -49,8 +48,8 @@ class VoiceToTextSimple:
     
     def load_whisper_model(self):
         """Load Whisper model"""
-        print("📥 Loading Whisper model (small for better performance)...")
-        self.model = whisper.load_model("small")
+        print("📥 Loading Whisper model (base for faster performance)...")
+        self.model = whisper.load_model("base")
         print("✅ Whisper model loaded")
     
     def toggle_recording(self):
@@ -168,8 +167,10 @@ class VoiceToTextSimple:
             result = self.model.transcribe(
                 audio_file,
                 language="en",
-                fp16=False,
-                verbose=False
+                fp16=False,  # CPU doesn't support fp16
+                condition_on_previous_text=False,
+                no_speech_threshold=0.6,  # Faster processing for clear speech
+                logprob_threshold=-1.0   # Skip low-confidence processing
             )
             text = result["text"].strip()
             
@@ -187,10 +188,9 @@ class VoiceToTextSimple:
         self.pasting = True
         
         try:
-            
             # Try direct typing first (most reliable)
             print(f"⌨️  Typing: {text}")
-            pyautogui.typewrite(text, interval=0.001)  # Much faster typing
+            pyautogui.typewrite(text, interval=0.001)
             print("✅ Text typed successfully")
             
         except Exception as e:
@@ -239,7 +239,7 @@ class VoiceToTextSimple:
 
 if __name__ == "__main__":
     try:
-        app = VoiceToTextSimple()
+        app = VoiceToText()
         app.run()
     except Exception as e:
         print(f"Error starting application: {e}")
